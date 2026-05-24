@@ -19,8 +19,6 @@ import (
 
 // do others that not defined in Driver interface
 
-const legacyOauthTokenURL = "https://api.alistgo.com/alist/ali_open/token"
-
 type refreshRateLimitError struct {
 	message    string
 	retryAfter time.Duration
@@ -39,7 +37,7 @@ func (d *AliyundriveOpen) _refreshToken(ctx context.Context) (string, string, er
 	}
 
 	if d.ClientID == "" || d.ClientSecret == "" {
-		return "", "", fmt.Errorf("empty ClientID or ClientSecret")
+		return "", "", fmt.Errorf("empty ClientID or ClientSecret; set client_id/client_secret or explicitly configure oauth_token_url")
 	}
 	return d.refreshTokenWithPost(ctx, API_URL+"/oauth/access_token")
 }
@@ -78,7 +76,10 @@ func (d *AliyundriveOpen) refreshTokenWithOnlineAPI(ctx context.Context) (string
 		return "", "", fmt.Errorf("failed to refresh token: %s", resp.ErrorMessage)
 	}
 	if res != nil && res.StatusCode() == http.StatusTooManyRequests {
-		return d.refreshTokenWithLegacyFallback(ctx, http.StatusText(http.StatusTooManyRequests), retryAfterFromResponse(res))
+		return "", "", &refreshRateLimitError{
+			message:    fmt.Sprintf("failed to refresh token: %s", http.StatusText(http.StatusTooManyRequests)),
+			retryAfter: retryAfterFromResponse(res),
+		}
 	}
 	if e.Code != "" || e.Message != "" {
 		return d.refreshTokenWithPost(ctx, d.OauthTokenURL)
@@ -87,14 +88,6 @@ func (d *AliyundriveOpen) refreshTokenWithOnlineAPI(ctx context.Context) (string
 }
 
 func (d *AliyundriveOpen) refreshTokenWithLegacyFallback(ctx context.Context, message string, retryAfter time.Duration) (string, string, error) {
-	if d.OauthTokenURL != legacyOauthTokenURL {
-		log.Warnf("[ali_open] online refresh API is rate-limited, trying legacy fallback: %s", legacyOauthTokenURL)
-		if refresh, access, err := d.refreshTokenWithPost(ctx, legacyOauthTokenURL); err == nil {
-			return refresh, access, nil
-		} else if _, ok := err.(*refreshRateLimitError); !ok {
-			return "", "", err
-		}
-	}
 	return "", "", &refreshRateLimitError{
 		message:    fmt.Sprintf("failed to refresh token: %s", message),
 		retryAfter: retryAfter,

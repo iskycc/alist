@@ -216,7 +216,7 @@ func (u *User) WebAuthnCredentials() []webauthn.Credential {
 }
 
 func (u *User) WebAuthnIcon() string {
-	return "https://alistgo.com/logo.svg"
+	return ""
 }
 
 // FetchRole is used to load role details by id. It should be set by the op package

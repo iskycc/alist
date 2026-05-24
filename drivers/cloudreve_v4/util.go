@@ -145,11 +145,15 @@ func (d *CloudreveV4) doLogin(needCaptcha bool) error {
 			return errors.New("can not get captcha")
 		}
 		loginBody["ticket"] = captcha.Ticket
+		ocrAPI := strings.TrimSpace(setting.GetStr(conf.OcrApi))
+		if ocrAPI == "" {
+			return fmt.Errorf(`need img validate code: <img src="%s"/>`, captcha.Image)
+		}
 		i := strings.Index(captcha.Image, ",")
 		dec := base64.NewDecoder(base64.StdEncoding, strings.NewReader(captcha.Image[i+1:]))
 		vRes, err := base.RestyClient.R().SetMultipartField(
 			"image", "validateCode.png", "image/png", dec).
-			Post(setting.GetStr(conf.OcrApi))
+			Post(ocrAPI)
 		if err != nil {
 			return err
 		}

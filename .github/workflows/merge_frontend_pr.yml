@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       frontend_pr:
-        description: 'Frontend PR reference, e.g. AlistGo/alist-web#301 or https://github.com/AlistGo/alist-web/pull/301'
+        description: 'Frontend PR reference, e.g. iskycc/alist-web#301 or https://github.com/iskycc/alist-web/pull/301'
         required: true
         type: string
 
@@ -31,7 +31,7 @@ jobs:
           set -euo pipefail
 
           text="${INPUT_FRONTEND_PR:-${PR_BODY:-}}"
-          ref="$(printf '%s\n' "$text" | grep -Eo '(https://github\.com/(AlistGo|alist-org)/alist-web/pull/[0-9]+)|((AlistGo|alist-org)/alist-web#[0-9]+)|(alist-web#[0-9]+)' | head -n1 || true)"
+          ref="$(printf '%s\n' "$text" | grep -Eo '(https://github\.com/iskycc/alist-web/pull/[0-9]+)|(iskycc/alist-web#[0-9]+)|(alist-web#[0-9]+)' | head -n1 || true)"
 
           if [[ -z "$ref" ]]; then
             echo "found=false" >> "$GITHUB_OUTPUT"
@@ -46,7 +46,7 @@ jobs:
           fi
 
           echo "found=true" >> "$GITHUB_OUTPUT"
-          echo "url=https://github.com/AlistGo/alist-web/pull/$number" >> "$GITHUB_OUTPUT"
+          echo "url=https://github.com/iskycc/alist-web/pull/$number" >> "$GITHUB_OUTPUT"
           echo "Found companion frontend PR #$number."
 
       - name: Merge frontend PR

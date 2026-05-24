@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY: 'xhofe/alist'
-  REGISTRY_USERNAME: 'xhofe'
+  REGISTRY: 'iskycc/alist'
+  REGISTRY_USERNAME: 'iskycc'
   REGISTRY_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
   GITHUB_CR_REPO: ghcr.io/${{ github.repository }}
   ARTIFACT_NAME: 'binaries_docker_release'
