@@ -12,7 +12,7 @@ elif [ "$1" = "beta" ]; then
 else
   git tag -d beta
   version=$(git describe --abbrev=0 --tags)
-  webVersion=$(wget -qO- -t1 -T2 "https://api.github.com/repos/AlistGo/alist-web/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+  webVersion=$(wget -qO- -t1 -T2 "https://api.github.com/repos/iskycc/alist-web/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
 fi
 
 echo "backend version: $version"
@@ -28,15 +28,15 @@ ldflags="\
 "
 
 FetchWebDev() {
-  curl -L https://codeload.github.com/alist-org/web-dist/tar.gz/refs/heads/dev -o web-dist-dev.tar.gz
-  tar -zxvf web-dist-dev.tar.gz
+  curl -L https://codeload.github.com/iskycc/web-dist/tar.gz/refs/heads/main -o web-dist-main.tar.gz
+  tar -zxvf web-dist-main.tar.gz
   rm -rf public/dist
-  mv -f web-dist-dev/dist public
-  rm -rf web-dist-dev web-dist-dev.tar.gz
+  mv -f web-dist-main/dist public
+  rm -rf web-dist-main web-dist-main.tar.gz
 }
 
 FetchWebRelease() {
-  curl -L https://github.com/AlistGo/alist-web/releases/latest/download/dist.tar.gz -o dist.tar.gz
+  curl -L https://github.com/iskycc/alist-web/releases/latest/download/dist.tar.gz -o dist.tar.gz
   tar -zxvf dist.tar.gz
   rm -rf public/dist
   mv -f dist public
