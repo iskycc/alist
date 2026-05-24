@@ -54,22 +54,7 @@ jobs:
   release:
     needs:
       - changelog
-    strategy:
-      matrix:
-        include:
-          - target: '!(*musl*|*windows-arm64*|*android*|*freebsd*)' # xgo
-            hash: "md5"
-          - target: 'linux-!(arm*)-musl*' #musl-not-arm
-            hash: "md5-linux-musl"
-
-          - target: 'windows-arm64' #win-arm64
-            hash: "md5-windows-arm64"
-          - target: 'android-*' #android
-            hash: "md5-android"
-          - target: 'freebsd-*' #freebsd
-            hash: "md5-freebsd"
-
-    name: Beta Release
+    name: Beta Release linux-amd64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -88,7 +73,7 @@ jobs:
       - name: Build
         uses: go-cross/cgo-actions@v1
         with:
-          targets: ${{ matrix.target }}
+          targets: linux-amd64-musl
           musl-target-format: $os-$musl-$arch
           out-dir: build
           x-flags: |
@@ -100,7 +85,7 @@ jobs:
 
       - name: Compress
         run: |
-          bash build.sh zip ${{ matrix.hash }}
+          bash build.sh zip md5-linux-musl
           
       - name: Upload assets
         uses: softprops/action-gh-release@v2

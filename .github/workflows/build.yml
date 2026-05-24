@@ -12,18 +12,8 @@ concurrency:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        platform: [ubuntu-latest]
-        target: 
-          - darwin-amd64
-          - darwin-arm64
-          - windows-amd64
-          - linux-amd64-musl
-          - windows-arm64
-          - android-arm64
-    name: Build
-    runs-on: ${{ matrix.platform }}
+    name: Build linux-amd64
+    runs-on: ubuntu-latest
     env:
       GOPROXY: https://proxy.golang.org,direct
     steps:
@@ -45,7 +35,7 @@ jobs:
       - name: Build
         uses: go-cross/cgo-actions@v1
         with:
-          targets: ${{ matrix.target }}
+          targets: linux-amd64-musl
           musl-target-format: $os-$musl-$arch
           out-dir: build
           x-flags: |
@@ -58,5 +48,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: alist_${{ env.SHA }}_${{ matrix.target }}
+          name: alist_${{ env.SHA }}_linux-amd64-musl
           path: build/*
