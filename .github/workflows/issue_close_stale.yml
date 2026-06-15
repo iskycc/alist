@@ -5,17 +5,51 @@ on:
     - cron: "0 0 */7 * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   close-inactive:
     runs-on: ubuntu-latest
+    env:
+      LABEL: stale
+      INACTIVE_DAYS: 8
     steps:
       - name: close-issues
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'close-issues'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          labels: 'stale'
-          inactive-day: 8
-          close-reason: 'not_planned'
-          body: |
-            Hello @${{ github.event.issue.user.login }}, this issue was closed due to inactive more than 52 days. You can reopen or recreate it if you think it should continue. Thank you for your contributions again.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          cutoff="$(date -u -d "${INACTIVE_DAYS} days ago" +%F)"
+          query="repo:${GITHUB_REPOSITORY} is:issue is:open label:${LABEL} updated:<${cutoff}"
+
+          echo "Closing issues matching: ${query}"
+
+          issues="$(
+            gh api --paginate -X GET search/issues \
+              -f q="${query}" \
+              -f per_page=100 \
+              --jq '.items[] | @base64'
+          )"
+
+          if [ -z "${issues}" ]; then
+            echo "No inactive issues found."
+            exit 0
+          fi
+
+          while IFS= read -r encoded_issue; do
+            issue="$(printf '%s' "${encoded_issue}" | base64 -d)"
+            number="$(jq -r '.number' <<<"${issue}")"
+            login="$(jq -r '.user.login' <<<"${issue}")"
+
+            body="Hello @${login}, this issue was closed due to inactive more than 52 days. You can reopen or recreate it if you think it should continue. Thank you for your contributions again."
+
+            echo "Closing issue #${number}"
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${number}/comments" \
+              -f body="${body}" >/dev/null
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/${number}" \
+              -f state=closed \
+              -f state_reason=not_planned >/dev/null
+          done <<<"${issues}"

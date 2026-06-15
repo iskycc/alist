@@ -5,18 +5,53 @@ on:
     - cron: "0 0 */1 * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   close-need-info:
     runs-on: ubuntu-latest
+    env:
+      LABEL: question
+      INACTIVE_DAYS: 3
     steps:
       - name: close-issues
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'close-issues'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          labels: 'question'
-          inactive-day: 3
-          close-reason: 'not_planned'
-          body: |
-            Hello @${{ github.event.issue.user.login }}, this issue was closed due to no activities in 3 days.
-            你好 @${{ github.event.issue.user.login }}，此issue因超过3天未回复被关闭。
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          cutoff="$(date -u -d "${INACTIVE_DAYS} days ago" +%F)"
+          query="repo:${GITHUB_REPOSITORY} is:issue is:open label:${LABEL} updated:<${cutoff}"
+
+          echo "Closing issues matching: ${query}"
+
+          issues="$(
+            gh api --paginate -X GET search/issues \
+              -f q="${query}" \
+              -f per_page=100 \
+              --jq '.items[] | @base64'
+          )"
+
+          if [ -z "${issues}" ]; then
+            echo "No inactive issues found."
+            exit 0
+          fi
+
+          while IFS= read -r encoded_issue; do
+            issue="$(printf '%s' "${encoded_issue}" | base64 -d)"
+            number="$(jq -r '.number' <<<"${issue}")"
+            login="$(jq -r '.user.login' <<<"${issue}")"
+
+            printf -v body \
+              'Hello @%s, this issue was closed due to no activities in 3 days.\n你好 @%s，此issue因超过3天未回复被关闭。' \
+              "${login}" "${login}"
+
+            echo "Closing issue #${number}"
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${number}/comments" \
+              -f body="${body}" >/dev/null
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/${number}" \
+              -f state=closed \
+              -f state_reason=not_planned >/dev/null
+          done <<<"${issues}"
